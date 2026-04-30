@@ -9,9 +9,9 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Object = UnityEngine.Object;
 
-namespace VRChatAssetExplorerLite
+namespace AvatarAssetNexus
 {
-    public class AvatarAssetLiteWindow : EditorWindow
+    public class AvatarAssetNexusWindow : EditorWindow
     {
         private enum TopTab
         {
@@ -54,8 +54,9 @@ namespace VRChatAssetExplorerLite
         private const string PrefRecentImportCategory = "VRAE_Lite_RecentImportCategory";
         private const string PrefDashboardAssetFolderFoldout = "VRAE_Lite_DashboardAssetFolderFoldout";
         private const string PrefDashboardCommonFoldout = "VRAE_Lite_DashboardCommonFoldout";
+        private const string PrefStrictAvatarInstanceSelection = "VRAE_Nexus_StrictAvatarInstanceSelection";
 
-        private AvatarAssetLiteDatabase _db;
+        private AvatarAssetNexusDatabase _db;
         private TopTab _activeTab = TopTab.Dashboard;
         private Language _language = Language.Chinese;
         private string _libraryRoot = "Assets/_MyVRProject/Purchased";
@@ -98,21 +99,22 @@ namespace VRChatAssetExplorerLite
         private readonly Dictionary<string, bool> _foldouts = new Dictionary<string, bool>();
         private bool _dashboardAssetFolderExpanded = true;
         private bool _dashboardCommonExpanded = false;
+        private bool _strictAvatarInstanceSelection = true;
         private string _categoryDragSourceId;
         private Vector2 _categoryDragStartMousePosition;
 
-        [MenuItem("Tools/VRChat Asset Explorer/Open Lite")]
+        [MenuItem("Tools/Avatar Asset Nexus/Open")]
         public static void Open()
         {
-            var window = GetWindow<AvatarAssetLiteWindow>();
-            window.titleContent = new GUIContent("Avatar Asset Lite");
+            var window = GetWindow<AvatarAssetNexusWindow>();
+            window.titleContent = new GUIContent("Avatar Asset Nexus");
             window.minSize = new Vector2(1100, 620);
             window.Show();
         }
 
         private void OnEnable()
         {
-            _db = AvatarAssetLiteDatabase.LoadOrCreate();
+            _db = AvatarAssetNexusDatabase.LoadOrCreate();
             _language = (Language)EditorPrefs.GetInt(PrefLanguage, (int)Language.English);
             _libraryRoot = EditorPrefs.GetString(PrefLibraryRoot, "Assets/_MyVRProject/Purchased");
             _search = EditorPrefs.GetString(PrefSearch, string.Empty);
@@ -124,6 +126,7 @@ namespace VRChatAssetExplorerLite
             _recentImportCategoryId = EditorPrefs.GetString(PrefRecentImportCategory, _selectedCategoryId);
             _dashboardAssetFolderExpanded = EditorPrefs.GetBool(PrefDashboardAssetFolderFoldout, true);
             _dashboardCommonExpanded = EditorPrefs.GetBool(PrefDashboardCommonFoldout, false);
+            _strictAvatarInstanceSelection = EditorPrefs.GetBool(PrefStrictAvatarInstanceSelection, true);
 
             var lastAvatarKey = EditorPrefs.GetString(PrefLastAvatarKey, string.Empty);
             if (!string.IsNullOrEmpty(lastAvatarKey))
@@ -157,11 +160,12 @@ namespace VRChatAssetExplorerLite
             EditorPrefs.SetString(PrefRecentImportCategory, _recentImportCategoryId ?? string.Empty);
             EditorPrefs.SetBool(PrefDashboardAssetFolderFoldout, _dashboardAssetFolderExpanded);
             EditorPrefs.SetBool(PrefDashboardCommonFoldout, _dashboardCommonExpanded);
+            EditorPrefs.SetBool(PrefStrictAvatarInstanceSelection, _strictAvatarInstanceSelection);
         }
 
         private void OnGUI()
         {
-            if (_db == null) _db = AvatarAssetLiteDatabase.LoadOrCreate();
+            if (_db == null) _db = AvatarAssetNexusDatabase.LoadOrCreate();
             _db.EnsureDefaults();
 
             DrawTopBar();
@@ -178,7 +182,7 @@ namespace VRChatAssetExplorerLite
         private void DrawTopBar()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.Height(30));
-            GUILayout.Label("Avatar Asset Lite", EditorStyles.boldLabel, GUILayout.Width(145));
+            GUILayout.Label("Avatar Asset Nexus", EditorStyles.boldLabel, GUILayout.Width(145));
 
             GUILayout.Label(T("search"), GUILayout.Width(44));
             EditorGUI.BeginChangeCheck();
@@ -671,7 +675,81 @@ namespace VRChatAssetExplorerLite
             }
             GUILayout.Label(T("settingsNote"), EditorStyles.wordWrappedMiniLabel);
             EditorGUILayout.EndHorizontal();
+            EditorGUI.BeginChangeCheck();
+            _strictAvatarInstanceSelection = EditorGUILayout.ToggleLeft(T("strictAvatarInstanceSelection"), _strictAvatarInstanceSelection);
+            if (EditorGUI.EndChangeCheck()) SaveEditorPrefs();
+            if (GUILayout.Button(T("resetDashboardSettings"), GUILayout.Width(160)))
+            {
+                ConfirmAndResetAllPersistentData();
+            }
             EditorGUILayout.EndVertical();
+        }
+
+        private void ConfirmAndResetAllPersistentData()
+        {
+            if (!EditorUtility.DisplayDialog(T("resetDashboardSettings"), T("resetAllConfirm"), T("resetConfirmButton"), T("cancel")))
+            {
+                return;
+            }
+
+            ResetAllPersistentData();
+        }
+
+        private void ResetAllPersistentData()
+        {
+            EditorPrefs.DeleteKey(PrefLanguage);
+            EditorPrefs.DeleteKey(PrefLibraryRoot);
+            EditorPrefs.DeleteKey(PrefSearch);
+            EditorPrefs.DeleteKey(PrefListView);
+            EditorPrefs.DeleteKey(PrefSortMode);
+            EditorPrefs.DeleteKey(PrefSortDescending);
+            EditorPrefs.DeleteKey(PrefSelectedCategory);
+            EditorPrefs.DeleteKey(PrefLastAvatarKey);
+            EditorPrefs.DeleteKey(PrefRecentImportCategory);
+            EditorPrefs.DeleteKey(PrefDashboardAssetFolderFoldout);
+            EditorPrefs.DeleteKey(PrefDashboardCommonFoldout);
+            EditorPrefs.DeleteKey(PrefStrictAvatarInstanceSelection);
+
+            _language = Language.English;
+            _libraryRoot = "Assets/_MyVRProject/Purchased";
+            _search = string.Empty;
+            _listView = false;
+            _sortMode = SortMode.Name;
+            _sortDescending = false;
+            _selectedCategoryId = string.Empty;
+            _recentImportCategoryId = string.Empty;
+            _currentAvatarKey = string.Empty;
+            _currentAvatarDisplayName = string.Empty;
+            _currentAvatarPath = string.Empty;
+            _currentAvatarObject = null;
+            _currentCache = null;
+            _selectedPrefabPath = string.Empty;
+            _selectedAssetPath = string.Empty;
+            _selectedPaths.Clear();
+            _lastClickedPath = string.Empty;
+            _prefabListMode = PrefabListMode.Referenced;
+            _unusedPrefabEntries = new List<PrefabPointerEntry>();
+            _strictAvatarInstanceSelection = true;
+            _dashboardAssetFolderExpanded = true;
+            _dashboardCommonExpanded = false;
+            _previewCache.Clear();
+            _remotePreviewCache.Clear();
+            _remotePreviewRequests.Clear();
+            _foldouts.Clear();
+
+            if (_db != null)
+            {
+                _db.avatarCaches = new List<AvatarPointerCache>();
+                _db.customCategories = new List<CustomCategoryRecord>();
+                _db.assetMetadata = new List<AssetExtraMetadata>();
+                _db.recentImportedAssetPaths = new List<string>();
+                _db.recentImportedAt = string.Empty;
+                _db.EnsureDefaults();
+                _db.Save();
+            }
+
+            SaveEditorPrefs();
+            SetStatus(T("dashboardSettingsReset"));
         }
 
         private void DrawLibraryRootControls()
@@ -1015,6 +1093,11 @@ namespace VRChatAssetExplorerLite
         private void DrawPrefabList()
         {
             GUILayout.Label(_prefabListMode == PrefabListMode.Referenced ? T("prefabListTitle") : T("unusedPrefabListTitle"), EditorStyles.boldLabel);
+            if (_currentCache != null && _currentCache.partUsages != null && _currentCache.partUsages.Count > 0)
+            {
+                var preview = string.Join("\n", _currentCache.partUsages.Take(3).Select(x => $"{x.status} | {x.confidence}% | {x.reason}"));
+                EditorGUILayout.HelpBox("Detect Modified / Unpacked Parts\n" + preview, MessageType.None);
+            }
 
             if (_currentCache == null)
             {
@@ -1748,6 +1831,7 @@ namespace VRChatAssetExplorerLite
 
                 var prefabPaths = CollectAvatarPrefabPaths(avatarObject, avatarPath);
                 cache.prefabs = prefabPaths.Select(BuildPrefabEntry).Where(x => x != null).OrderBy(x => x.displayName).ToList();
+                cache.partUsages = CollectAvatarPartUsages(avatarObject, cache.prefabs);
                 SyncAvatarPrefabCategory(cache);
 
                 _currentAvatarKey = cache.avatarKey;
@@ -1765,13 +1849,84 @@ namespace VRChatAssetExplorerLite
 
                 _db.Save();
                 SaveEditorPrefs();
-                SetStatus(string.Format(T("analysisDone"), cache.prefabs.Count));
+                SetStatus(string.Format(T("analysisDone"), cache.prefabs.Count) + " " + string.Format(T("partDetectDone"), cache.partUsages.Count));
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
                 SetStatus(T("analysisFailed") + ": " + ex.Message);
             }
+        }
+
+        private List<AvatarPartUsageEntry> CollectAvatarPartUsages(GameObject avatarRoot, List<PrefabPointerEntry> prefabEntries)
+        {
+            var result = new List<AvatarPartUsageEntry>();
+            if (avatarRoot == null) return result;
+            var dependencyMap = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in prefabEntries ?? new List<PrefabPointerEntry>())
+            {
+                if (entry == null || entry.dependencyPaths == null) continue;
+                foreach (var dep in entry.dependencyPaths.Where(IsProjectPath))
+                {
+                    if (!dependencyMap.TryGetValue(dep, out var list)) dependencyMap[dep] = list = new List<string>();
+                    if (!list.Contains(entry.prefabPath)) list.Add(entry.prefabPath);
+                }
+            }
+
+            foreach (var renderer in avatarRoot.GetComponentsInChildren<Renderer>(true))
+            {
+                var go = renderer.gameObject;
+                var entry = new AvatarPartUsageEntry { objectPath = GetHierarchyPath(go.transform) };
+                var prefabPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(go);
+                if (renderer is SkinnedMeshRenderer smr && smr.sharedMesh != null) entry.meshPath = AssetDatabase.GetAssetPath(smr.sharedMesh);
+                if (renderer is MeshRenderer)
+                {
+                    var mf = renderer.GetComponent<MeshFilter>();
+                    if (mf != null && mf.sharedMesh != null) entry.meshPath = AssetDatabase.GetAssetPath(mf.sharedMesh);
+                }
+                entry.materialPaths = renderer.sharedMaterials.Where(x => x != null).Select(AssetDatabase.GetAssetPath).Where(IsProjectPath).Distinct().ToList();
+
+                if (PrefabUtility.GetPrefabInstanceStatus(go) == PrefabInstanceStatus.Connected && IsProjectPath(prefabPath))
+                {
+                    entry.status = "Prefab Instance";
+                    entry.confidence = 100;
+                    entry.reason = "Prefab connected";
+                    entry.matchedPrefabPath = prefabPath;
+                }
+                else
+                {
+                    var scores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    if (IsProjectPath(entry.meshPath) && dependencyMap.TryGetValue(entry.meshPath, out var meshCandidates))
+                        foreach (var c in meshCandidates) scores[c] = 60;
+                    foreach (var mat in entry.materialPaths)
+                        if (dependencyMap.TryGetValue(mat, out var matCandidates))
+                            foreach (var c in matCandidates) scores[c] = (scores.TryGetValue(c, out var s) ? s : 0) + 20;
+                    var best = scores.OrderByDescending(x => x.Value).FirstOrDefault();
+                    if (!string.IsNullOrEmpty(best.Key) && best.Value >= 40)
+                    {
+                        entry.status = "Modified / Unpacked Match";
+                        entry.confidence = Mathf.Clamp(best.Value, 40, 95);
+                        entry.reason = "Mesh/Material similarity";
+                        entry.matchedPrefabPath = best.Key;
+                    }
+                    else
+                    {
+                        entry.status = "Loose Assets";
+                        entry.confidence = 0;
+                        entry.reason = "No reliable prefab match";
+                    }
+                }
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        private static string GetHierarchyPath(Transform t)
+        {
+            var names = new List<string>();
+            while (t != null) { names.Add(t.name); t = t.parent; }
+            names.Reverse();
+            return string.Join("/", names);
         }
 
         private void SyncAvatarPrefabCategory(AvatarPointerCache cache)
@@ -2274,6 +2429,22 @@ namespace VRChatAssetExplorerLite
         private GameObject FindSceneInstanceForPrefab(string prefabPath)
         {
             if (!IsPrefab(prefabPath)) return null;
+            var preferredRoot = _currentAvatarObject as GameObject;
+            if (preferredRoot != null && preferredRoot.scene.IsValid())
+            {
+                var underAvatar = preferredRoot.GetComponentsInChildren<Transform>(true)
+                    .Select(x => x.gameObject)
+                    .Where(go => go != null && go.scene.IsValid() && !EditorUtility.IsPersistent(go));
+                foreach (var go in underAvatar)
+                {
+                    var instanceRoot = PrefabUtility.GetNearestPrefabInstanceRoot(go);
+                    if (instanceRoot != go) continue;
+                    var path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(go);
+                    if (path == prefabPath) return go;
+                }
+                if (_strictAvatarInstanceSelection) return null;
+            }
+
             var all = Resources.FindObjectsOfTypeAll<GameObject>();
             foreach (var go in all)
             {
@@ -2883,6 +3054,11 @@ namespace VRChatAssetExplorerLite
                 case "useSelectedFolder": return "使用当前选中文件夹";
                 case "pingDataAsset": return "定位数据库";
                 case "settingsNote": return "未引用 Prefab 功能只会扫描这个资源目录下的 t:Prefab。";
+                case "strictAvatarInstanceSelection": return "只选择该Avatar下的实例";
+                case "resetDashboardSettings": return "Reset 首页设置";
+                case "dashboardSettingsReset": return "插件设置和缓存已重置。";
+                case "resetAllConfirm": return "确定重置所有持久化设置和缓存吗？该操作不可撤销。";
+                case "resetConfirmButton": return "确认重置";
                 case "details": return "资源详情";
                 case "noSelectedAsset": return "当前没有选中资源。";
                 case "ping": return "定位";
@@ -2920,6 +3096,7 @@ namespace VRChatAssetExplorerLite
                 case "avatarSelected": return "Avatar 已选择。";
                 case "needAvatar": return "请先选择 Avatar。";
                 case "analysisDone": return "检索完成：找到 {0} 个 Prefab。";
+                case "partDetectDone": return "部件检测：{0} 项。";
                 case "analysisFailed": return "检索失败";
                 case "cacheLoaded": return "已加载该 Avatar 的指针索引缓存。";
                 case "invalidLibraryRoot": return "资源目录无效。请到首页修改。";
@@ -3037,6 +3214,11 @@ namespace VRChatAssetExplorerLite
                 case "useSelectedFolder": return "選択フォルダを使用";
                 case "pingDataAsset": return "DBを表示";
                 case "settingsNote": return "未使用Prefab機能はこのフォルダ内の t:Prefab のみスキャンします。";
+                case "strictAvatarInstanceSelection": return "このAvatar配下のインスタンスのみ選択";
+                case "resetDashboardSettings": return "ホーム設定をリセット";
+                case "dashboardSettingsReset": return "プラグイン設定とキャッシュをリセットしました。";
+                case "resetAllConfirm": return "保存設定とキャッシュをすべてリセットします。元に戻せません。よろしいですか？";
+                case "resetConfirmButton": return "リセット実行";
                 case "details": return "詳細";
                 case "noSelectedAsset": return "アセットが選択されていません。";
                 case "ping": return "Ping";
@@ -3074,6 +3256,7 @@ namespace VRChatAssetExplorerLite
                 case "avatarSelected": return "Avatarを選択しました。";
                 case "needAvatar": return "先にAvatarを選択してください。";
                 case "analysisDone": return "検索完了：{0} 個のPrefab。";
+                case "partDetectDone": return "パーツ検出: {0} 件。";
                 case "analysisFailed": return "検索失敗";
                 case "cacheLoaded": return "このAvatarのキャッシュを読み込みました。";
                 case "invalidLibraryRoot": return "アセットフォルダが無効です。ホームで変更してください。";
@@ -3189,6 +3372,11 @@ namespace VRChatAssetExplorerLite
                 case "useSelectedFolder": return "Use Selected Folder";
                 case "pingDataAsset": return "Ping Database";
                 case "settingsNote": return "The unused-prefab feature scans only t:Prefab under this folder.";
+                case "strictAvatarInstanceSelection": return "Only select instances under this Avatar";
+                case "resetDashboardSettings": return "Reset Dashboard Settings";
+                case "dashboardSettingsReset": return "Plugin settings and caches reset.";
+                case "resetAllConfirm": return "Reset all persisted settings and caches? This cannot be undone.";
+                case "resetConfirmButton": return "Confirm Reset";
                 case "details": return "Details";
                 case "noSelectedAsset": return "No selected asset.";
                 case "ping": return "Ping";
@@ -3226,6 +3414,7 @@ namespace VRChatAssetExplorerLite
                 case "avatarSelected": return "Avatar selected.";
                 case "needAvatar": return "Please select an Avatar first.";
                 case "analysisDone": return "Search complete: {0} prefabs found.";
+                case "partDetectDone": return "Part detect: {0} entries.";
                 case "analysisFailed": return "Search failed";
                 case "cacheLoaded": return "Loaded pointer cache for this Avatar.";
                 case "invalidLibraryRoot": return "Invalid asset folder. Please update it on Dashboard.";

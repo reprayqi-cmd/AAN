@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 
-namespace VRChatAssetExplorerLite
+namespace AvatarAssetNexus
 {
     [Serializable]
     public class AvatarPointerCache
@@ -20,6 +20,19 @@ namespace VRChatAssetExplorerLite
         public string autoCategoryId;
         public List<PrefabPointerEntry> prefabs = new List<PrefabPointerEntry>();
         public List<PrefabPointerEntry> unusedPrefabs = new List<PrefabPointerEntry>();
+        public List<AvatarPartUsageEntry> partUsages = new List<AvatarPartUsageEntry>();
+    }
+
+    [Serializable]
+    public class AvatarPartUsageEntry
+    {
+        public string objectPath;
+        public string status;
+        public int confidence;
+        public string reason;
+        public string matchedPrefabPath;
+        public string meshPath;
+        public List<string> materialPaths = new List<string>();
     }
 
     [Serializable]
@@ -56,10 +69,10 @@ namespace VRChatAssetExplorerLite
         public List<string> tags = new List<string>();
     }
 
-    public class AvatarAssetLiteDatabase : ScriptableObject
+    public class AvatarAssetNexusDatabase : ScriptableObject
     {
-        public const string DataFolder = "Assets/VRChatAssetExplorerData";
-        public const string DataAssetPath = DataFolder + "/AvatarAssetLiteDatabase.asset";
+        public const string DataFolder = "Assets/AvatarAssetNexusData";
+        public const string DataAssetPath = DataFolder + "/AvatarAssetNexusDatabase.asset";
 
         public List<AvatarPointerCache> avatarCaches = new List<AvatarPointerCache>();
         public List<CustomCategoryRecord> customCategories = new List<CustomCategoryRecord>();
@@ -67,9 +80,9 @@ namespace VRChatAssetExplorerLite
         public List<string> recentImportedAssetPaths = new List<string>();
         public string recentImportedAt;
 
-        public static AvatarAssetLiteDatabase LoadOrCreate()
+        public static AvatarAssetNexusDatabase LoadOrCreate()
         {
-            var db = AssetDatabase.LoadAssetAtPath<AvatarAssetLiteDatabase>(DataAssetPath);
+            var db = AssetDatabase.LoadAssetAtPath<AvatarAssetNexusDatabase>(DataAssetPath);
             if (db != null)
             {
                 db.EnsureDefaults();
@@ -78,10 +91,10 @@ namespace VRChatAssetExplorerLite
 
             if (!AssetDatabase.IsValidFolder(DataFolder))
             {
-                AssetDatabase.CreateFolder("Assets", "VRChatAssetExplorerData");
+                AssetDatabase.CreateFolder("Assets", "AvatarAssetNexusData");
             }
 
-            db = CreateInstance<AvatarAssetLiteDatabase>();
+            db = CreateInstance<AvatarAssetNexusDatabase>();
             db.EnsureDefaults();
             AssetDatabase.CreateAsset(db, DataAssetPath);
             AssetDatabase.SaveAssets();
@@ -98,10 +111,15 @@ namespace VRChatAssetExplorerLite
             {
                 if (cache.prefabs == null) cache.prefabs = new List<PrefabPointerEntry>();
                 if (cache.unusedPrefabs == null) cache.unusedPrefabs = new List<PrefabPointerEntry>();
+                if (cache.partUsages == null) cache.partUsages = new List<AvatarPartUsageEntry>();
             }
             foreach (var category in customCategories)
             {
                 if (category.assetPaths == null) category.assetPaths = new List<string>();
+            }
+            foreach (var metadata in assetMetadata)
+            {
+                if (metadata.tags == null) metadata.tags = new List<string>();
             }
 
             if (customCategories.Count == 0)
@@ -147,7 +165,7 @@ namespace VRChatAssetExplorerLite
             var safeName = string.IsNullOrEmpty(baseName) ? "New Category" : baseName;
             var name = safeName;
             var index = 2;
-            while (customCategories.Any(x => x.name == name))
+            while (customCategories.Any(x => string.Equals(x.name, name, StringComparison.OrdinalIgnoreCase)))
             {
                 name = safeName + " " + index;
                 index++;

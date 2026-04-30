@@ -1,4 +1,4 @@
-# VRChat Asset Explorer Lite v6.6 - Unity Plugin
+# Avatar Asset Nexus v6.6 - Unity Plugin
 
 A lightweight Unity Editor plugin for VRChat / VRM / VTuber avatar asset navigation.
 
@@ -6,7 +6,7 @@ A lightweight Unity Editor plugin for VRChat / VRM / VTuber avatar asset navigat
 
 This tool is Avatar-first. It does not build a heavy global index when the window opens.
 
-1. Open `Tools / VRChat Asset Explorer / Open Lite`.
+1. Open `Tools / Avatar Asset Nexus / Open`.
 2. On Dashboard, expand `Asset Folder` only when you need to change the folder used for unused-prefab checks.
 3. Click `Select Avatar`, then drag a Project Avatar prefab or a Hierarchy Avatar instance into the Avatar card.
 4. Click `Search Current Avatar Prefabs` to refresh this Avatar's remembered prefab list.
@@ -44,7 +44,7 @@ The tool stores a lightweight pointer cache:
 
 Data asset:
 
-`Assets/VRChatAssetExplorerData/AvatarAssetLiteDatabase.asset`
+`Assets/AvatarAssetNexusData/AvatarAssetNexusDatabase.asset`
 
 Editor settings are persisted with `EditorPrefs`.
 
@@ -52,12 +52,12 @@ Editor settings are persisted with `EditorPrefs`.
 
 Delete old copies first, especially accidental nested paths like:
 
-`Assets/Assets/VRChatAssetExplorer`
+`Assets/Assets/AvatarAssetNexus`
 
 Then place the folder:
 
-`VRChatAssetExplorer`
+`AvatarAssetNexus`
 
 under your Unity project:
 
-`Assets/VRChatAssetExplorer`
+`Assets/AvatarAssetNexus`

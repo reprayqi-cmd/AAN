@@ -5,9 +5,9 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace VRChatAssetExplorerLite
+namespace AvatarAssetNexus
 {
-    public class AvatarAssetLiteImportWatcher : AssetPostprocessor
+    public class AvatarAssetNexusImportWatcher : AssetPostprocessor
     {
         private static readonly HashSet<string> SupportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -29,11 +29,11 @@ namespace VRChatAssetExplorerLite
             {
                 try
                 {
-                    var db = AvatarAssetLiteDatabase.LoadOrCreate();
+                    var db = AvatarAssetNexusDatabase.LoadOrCreate();
                     db.SetRecentImportedAssets(paths);
                     db.Save();
 
-                    foreach (var window in Resources.FindObjectsOfTypeAll<AvatarAssetLiteWindow>())
+                    foreach (var window in Resources.FindObjectsOfTypeAll<AvatarAssetNexusWindow>())
                     {
                         window.Repaint();
                     }
@@ -49,8 +49,8 @@ namespace VRChatAssetExplorerLite
         {
             if (string.IsNullOrEmpty(path)) return false;
             if (!path.StartsWith("Assets/", StringComparison.Ordinal)) return false;
-            if (path.StartsWith("Assets/VRChatAssetExplorer/", StringComparison.Ordinal)) return false;
-            if (path.StartsWith("Assets/VRChatAssetExplorerData/", StringComparison.Ordinal)) return false;
+            if (path.StartsWith("Assets/AvatarAssetNexus/", StringComparison.Ordinal)) return false;
+            if (path.StartsWith("Assets/AvatarAssetNexusData/", StringComparison.Ordinal)) return false;
             if (path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase)) return false;
 
             if (AssetDatabase.IsValidFolder(path)) return true;
